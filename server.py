@@ -73,8 +73,9 @@ def create_server():
                 return "Error: youtube_transcript_api library not installed"
 
             video_id = extract_video_id(video_url)
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[language])
-            transcript = ' '.join([item['text'] for item in transcript_list])
+            ytt = YouTubeTranscriptApi()
+            transcript_list = ytt.fetch(video_id, languages=[language])
+            transcript = ' '.join([snippet.text for snippet in transcript_list])
             return transcript
         except Exception as e:
             return f"Error retrieving transcript: {str(e)}"
