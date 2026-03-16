@@ -53,6 +53,21 @@ def extract_video_id(url: str) -> str:
         raise ValueError(f"Could not extract video ID from URL {url}: {str(e)}")
 
 
+def _cached(tool_name: str, args: dict, fn, ttl: int = 3600):
+    """Check cache, call fn if miss, store result."""
+    try:
+        from cache import cache_key, get_cached, set_cache
+        key = cache_key(tool_name, **args)
+        hit = get_cached(key)
+        if hit is not None:
+            return hit
+        result = fn()
+        set_cache(key, result, ttl_seconds=ttl)
+        return result
+    except Exception:
+        return fn()
+
+
 def create_server():
     mcp = FastMCP("google-mcp")
 
