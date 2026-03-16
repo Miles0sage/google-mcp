@@ -235,6 +235,114 @@ def create_server():
         except Exception as e:
             return f"Error in research pipeline: {str(e)}"
 
+    # -----------------------------------------------------------------------
+    # Phase 2 tools — Maps, YouTube Search, Books, Patents, NotebookLM
+    # -----------------------------------------------------------------------
+
+    @mcp.tool()
+    def maps_search(query: str, location: str = '', radius: int = 5000) -> str:
+        """Search Google Maps for places (restaurants, barbershops, etc).
+        Args:
+            query: What to search for (e.g. "barbershops in Flagstaff AZ")
+            location: Center point as "lat,lng" (optional)
+            radius: Search radius in meters (default 5000)
+        """
+        try:
+            from tools_maps import search_places
+            return search_places(query, location, radius)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def maps_details(place_id: str) -> str:
+        """Get detailed info for a Google Maps place (reviews, hours, phone, website).
+        Args:
+            place_id: Google Maps place ID from maps_search results
+        """
+        try:
+            from tools_maps import place_details
+            return place_details(place_id)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def youtube_search(query: str, max_results: int = 10) -> str:
+        """Search YouTube for videos by keyword.
+        Args:
+            query: Search query
+            max_results: Max videos to return (default 10)
+        """
+        try:
+            from tools_youtube import search_youtube
+            return search_youtube(query, max_results)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def youtube_channel(channel_url: str, max_results: int = 10) -> str:
+        """Get recent videos from a YouTube channel.
+        Args:
+            channel_url: YouTube channel URL
+            max_results: Max videos to return (default 10)
+        """
+        try:
+            from tools_youtube import channel_videos
+            return channel_videos(channel_url, max_results)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def books_search(query: str, max_results: int = 5) -> str:
+        """Search Google Books for books by keyword.
+        Args:
+            query: Book search query
+            max_results: Max results (default 5)
+        """
+        try:
+            from tools_books import search_books
+            return search_books(query, max_results)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def patents_search(query: str, max_results: int = 5) -> str:
+        """Search Google Patents for patents by keyword.
+        Args:
+            query: Patent search query
+            max_results: Max results (default 5)
+        """
+        try:
+            from tools_patents import search_patents
+            return search_patents(query, max_results)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_create(title: str, source_urls: str) -> str:
+        """Create a NotebookLM notebook and add source URLs. Requires browser auth.
+        Args:
+            title: Notebook title
+            source_urls: Comma-separated list of URLs to add as sources
+        """
+        try:
+            from tools_notebooklm import create_notebook
+            urls = [u.strip() for u in source_urls.split(',') if u.strip()]
+            return create_notebook(title, urls)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_podcast(notebook_url: str) -> str:
+        """Generate an audio podcast from a NotebookLM notebook.
+        Args:
+            notebook_url: URL of the NotebookLM notebook
+        """
+        try:
+            from tools_notebooklm import generate_podcast
+            return generate_podcast(notebook_url)
+        except Exception as e:
+            return f"Error: {e}"
+
     return mcp
 
 
