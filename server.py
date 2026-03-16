@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""
+Google MCP Server
+Exposes Google services as MCP tools using FastMCP
+"""
+
+from mcp.server.fastmcp import FastMCP
+import json
+from typing import Dict, Any, List, Optional
+from urllib.parse import urlparse, parse_qs
+import io
+import sys
+
+# Import required libraries
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+except ImportError:
+    YouTubeTranscriptApi = None
+
+try:
+    from pytrends.request import TrendReq
+except ImportError:
+    TrendReq = None
+
+try:
+    from gnews import GNews
+except ImportError:
+    GNews = None
+
+try:
+    from scholarly import scholarly
+except ImportError:
+    scholarly = None
+
+
+def extract_video_id(url: str) -> str:
+    """Extract YouTube video ID from URL."""
+    try:
+        parsed_url = urlparse(url)
+        if parsed_url.hostname == 'youtu.be':
+            return parsed_url.path[1:]
+        if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
+            if parsed_url.path == '/watch':
+                p = parse_qs(parsed_url.query)
+                return p['v'][0]
+            if parsed_url.path[:7] == '/embed/':
+                return parsed_url.path.split('/')[2]
+            if parsed_url.path[:3] == '/v/':
+                return parsed_url.path.split('/')[2]
+        # If none of the above conditions match, raise an exception
+        raise ValueError(f"Invalid YouTube URL: {url}")
+    except Exception as e:
+        raise ValueError(f"Could not extract video ID from URL {url}: {str(e)}")
+
+
+def create_server():
+    mcp = FastMCP("google-mcp")
+
+    @mcp.tool()
+    def youtube_transcript(video_url: str, language: str = 'en') -> str:
+        """
+        Extract transcript from YouTube video.
+
+        Args:
+            video_url: URL of the YouTube video
+            language: Language code for transcript (default: 'en')
+
+        Returns:
+            Transcript as a string
+        """
+        try:
+            if YouTubeTranscriptApi is None:
+                return "Error: youtube_transcript_api library not installed"
+
+            video_id = extract_video_id(video_url)
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[language])
+            transcript = ' '.join([item['text'] for item in transcript_list])
+            return transcript
+        except Exception as e:
+            return f"Error retrieving transcript: {str(e)}"
+
+    @mcp.tool()
+    def google_trends(keyword: str, timeframe: str = 'today 3-m', geo: str = '') -> str:
+        """
+        Get Google Trends data for a keyword.
+
+        Args:
+            keyword: Keyword to search for
+            timeframe: Time range (default: 'today 3-m')
+            geo: Geographic location (default: '')
+
+        Returns:
+            Google Trends data as a formatted string
+        """
+        try:
+            if TrendReq is None:
+                return "Error: pytrends library not installed"
+
+            pytrend = TrendReq(hl='en-US', tz=360)
+            kw_list = [keyword]
+            pytrend.build_payload(kw_list, timeframe=timeframe, geo=geo)
+            interest_over_time_df = pytrend.interest_over_time()
+
+            if interest_over_time_df.empty:
+                return f"No trends data found for keyword: {keyword}"
+
+            result = f"Google Trends data for '{keyword}' (timeframe: {timeframe}, geo: {geo}):\n"
+            result += interest_over_time_df.to_string()
+            return result
+        except Exception as e:
+            return f"Error retrieving Google Trends data: {str(e)}"
+
+    @mcp.tool()
+    def google_news(query: str, max_results: int = 10, language: str = 'en') -> str:
+        """
+        Search Google News for a query.
+
+        Args:
+            query: Search query
+            max_results: Maximum number of results (default: 10)
+            language: Language code (default: 'en')
+
+        Returns:
+            News articles as a formatted string
+        """
+        try:
+            if GNews is None:
+                return "Error: gnews library not installed"
+
+            google_news = GNews(
+                language=language,
+                max_results=max_results
+            )
+            news_items = google_news.get_news(query)
+
+            if not news_items:
+                return f"No news articles found for query: {query}"
+
+            result = f"Google News results for '{query}':\n"
+            for i, item in enumerate(news_items, 1):
+                result += f"\n{i}. {item.get('title', 'No Title')}\n"
+                result += f"   Description: {item.get('description', 'No Description')}\n"
+                result += f"   URL: {item.get('url', 'No URL')}\n"
+                result += f"   Published Date: {item.get('published date', 'No Date')}\n"
+            return result
+        except Exception as e:
+            return f"Error retrieving Google News: {str(e)}"
+
+    @mcp.tool()
+    def google_scholar(query: str, max_results: int = 5) -> str:
+        """
+        Search Google Scholar for academic papers.
+
+        Args:
+            query: Search query
+            max_results: Maximum number of results (default: 5)
+
+        Returns:
+            Academic papers as a formatted string
+        """
+        try:
+            if scholarly is None:
+                return "Error: scholarly library not installed"
+
+            search_query = scholarly.search_pubs(query)
+            results = []
+            count = 0
+
+            for pub in search_query:
+                if count >= max_results:
+                    break
+                results.append(pub)
+                count += 1
+
+            if not results:
+                return f"No academic papers found for query: {query}"
+
+            result = f"Google Scholar results for '{query}':\n"
+            for i, pub in enumerate(results, 1):
+                result += f"\n{i}. {pub.get('bib', {}).get('title', 'No Title')}\n"
+                result += f"   Author(s): {pub.get('bib', {}).get('author', 'Unknown')}\n"
+                result += f"   Year: {pub.get('bib', {}).get('pub_year', 'Unknown')}\n"
+                result += f"   Abstract: {pub.get('bib', {}).get('abstract', 'No Abstract')}\n"
+                result += f"   URL: {pub.get('eprint_url', pub.get('pub_url', 'No URL'))}\n"
+                result += f"   Citations: {pub.get('num_citations', 0)}\n"
+            return result
+        except Exception as e:
+            return f"Error retrieving Google Scholar data: {str(e)}"
+
+    @mcp.tool()
+    def research_pipeline(topic: str, max_sources: int = 10) -> str:
+        """
+        Combined research pipeline across multiple sources.
+
+        Args:
+            topic: Research topic
+            max_sources: Maximum number of sources per category (default: 10)
+
+        Returns:
+            Combined research report as a formatted string
+        """
+        try:
+            result = f"Research Pipeline Report for: {topic}\n"
+            result += "=" * 50 + "\n\n"
+
+            # News Section
+            result += "NEWS ARTICLES:\n"
+            result += "-" * 20 + "\n"
+            try:
+                news_results = google_news(query=topic, max_results=max_sources, language='en')
+                result += news_results + "\n\n"
+            except Exception as e:
+                result += f"Error retrieving news: {str(e)}\n\n"
+
+            # Academic Papers Section
+            result += "ACADEMIC PAPERS:\n"
+            result += "-" * 20 + "\n"
+            try:
+                scholar_results = google_scholar(query=topic, max_results=max_sources)
+                result += scholar_results + "\n\n"
+            except Exception as e:
+                result += f"Error retrieving academic papers: {str(e)}\n\n"
+
+            # Trend Data Section
+            result += "TREND DATA:\n"
+            result += "-" * 20 + "\n"
+            try:
+                trends_results = google_trends(keyword=topic, timeframe='today 3-m', geo='')
+                result += trends_results
+            except Exception as e:
+                result += f"Error retrieving trends: {str(e)}"
+
+            return result
+        except Exception as e:
+            return f"Error in research pipeline: {str(e)}"
+
+    return mcp
+
+
+if __name__ == '__main__':
+    mcp = create_server()
+    mcp.run()
