@@ -421,6 +421,18 @@ def create_server():
             return f"Error: {e}"
 
     @mcp.tool()
+    def notebooklm_video(notebook_id: str) -> str:
+        """Generate a Cinematic Video Overview for a NotebookLM notebook.
+        Args:
+            notebook_id: Notebook ID from notebooklm_list
+        """
+        try:
+            from tools_notebooklm import generate_video
+            return generate_video(notebook_id)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
     def notebooklm_ask(notebook_id: str, question: str) -> str:
         """Ask a question to a NotebookLM notebook's sources. Get AI-generated answer grounded in the sources.
         Args:

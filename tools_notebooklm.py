@@ -126,6 +126,22 @@ def generate_podcast(notebook_id: str) -> str:
         return f"Error generating podcast: {e}"
 
 
+def generate_video(notebook_id: str) -> str:
+    """Generate a Cinematic Video Overview for a NotebookLM notebook."""
+    async def _run():
+        client = await _get_client()
+        await client.__aenter__()
+        try:
+            gen = await client.artifacts.generate_video(notebook_id)
+            return f"Video generation started (task: {gen.task_id}, status: {gen.status})\nNote: Generation takes 2-5 minutes. Check notebooklm.google.com for the video player."
+        finally:
+            await client.__aexit__(None, None, None)
+    try:
+        return _run_async(_run)
+    except Exception as e:
+        return f"Error generating video: {e}"
+
+
 def ask_notebook(notebook_id: str, question: str) -> str:
     """Ask a question to a notebook's sources."""
     async def _run():
