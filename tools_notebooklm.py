@@ -7,7 +7,8 @@ from typing import Optional
 async def _get_client():
     """Get authenticated NotebookLMClient from saved storage."""
     from notebooklm import NotebookLMClient
-    return NotebookLMClient.from_storage()
+    client = await NotebookLMClient.from_storage()
+    return client
 
 
 def list_notebooks() -> str:
@@ -89,10 +90,13 @@ def add_youtube_source(notebook_id: str, youtube_url: str) -> str:
 def generate_podcast(notebook_id: str) -> str:
     """Generate an Audio Overview (podcast) for a notebook."""
     async def _run():
-        from notebooklm import ArtifactType
-        async with await _get_client() as client:
-            artifact = await client.artifacts.generate(notebook_id, ArtifactType.AUDIO)
-            return f"Podcast generation started (ID: {artifact.id}, status: {artifact.status})\nNote: Generation takes 2-5 minutes."
+        client = await _get_client()
+        await client.__aenter__()
+        try:
+            gen = await client.artifacts.generate_audio(notebook_id)
+            return f"Podcast generation started (task: {gen.task_id}, status: {gen.status})\nNote: Generation takes 2-5 minutes. Check notebooklm.google.com for the audio player."
+        finally:
+            await client.__aexit__(None, None, None)
     try:
         return asyncio.run(_run())
     except Exception as e:
@@ -104,7 +108,8 @@ def ask_notebook(notebook_id: str, question: str) -> str:
     async def _run():
         async with await _get_client() as client:
             result = await client.chat.ask(notebook_id, question)
-            return f"Answer: {result.text}\n\nReferences: {len(result.references) if hasattr(result, 'references') else 'N/A'}"
+            refs = len(result.references) if result.references else 0
+            return f"Answer: {result.answer}\n\nReferences: {refs} citations"
     try:
         return asyncio.run(_run())
     except Exception as e:
