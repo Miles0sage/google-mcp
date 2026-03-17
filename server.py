@@ -178,15 +178,28 @@ def create_server():
             if scholarly is None:
                 return "Error: scholarly library not installed"
 
-            search_query = scholarly.search_pubs(query)
-            results = []
-            count = 0
+            import signal
 
-            for pub in search_query:
-                if count >= max_results:
-                    break
-                results.append(pub)
-                count += 1
+            def _timeout_handler(signum, frame):
+                raise TimeoutError("Scholar search timed out (rate-limited)")
+
+            # Fail fast: 8 second timeout instead of 60+ seconds of retries
+            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(8)
+
+            try:
+                search_query = scholarly.search_pubs(query)
+                results = []
+                count = 0
+
+                for pub in search_query:
+                    if count >= max_results:
+                        break
+                    results.append(pub)
+                    count += 1
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
 
             if not results:
                 return f"No academic papers found for query: {query}"
@@ -429,6 +442,45 @@ def create_server():
         try:
             from tools_notebooklm import notebook_sources
             return notebook_sources(notebook_id)
+        except Exception as e:
+            return f"Error: {e}"
+
+    # -----------------------------------------------------------------------
+    # Phase 3 tools — Translate, Finance
+    # -----------------------------------------------------------------------
+
+    @mcp.tool()
+    def translate(text: str, target_language: str = 'en', source_language: str = 'auto') -> str:
+        """Translate text between languages using Google Translate (free, no API key).
+        Args:
+            text: Text to translate
+            target_language: Target language code (e.g. 'es', 'fr', 'de', 'zh', 'ja', 'ar')
+            source_language: Source language code or 'auto' to detect
+        """
+        try:
+            from tools_translate import translate_text
+            return translate_text(text, target_language, source_language)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def stock_quote(symbol: str) -> str:
+        """Get real-time stock quote (price, change, market cap, PE ratio, 52-week range).
+        Args:
+            symbol: Stock ticker symbol (e.g. 'AAPL', 'GOOGL', 'TSLA')
+        """
+        try:
+            from tools_finance import stock_quote as _sq
+            return _sq(symbol)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def market_overview() -> str:
+        """Get major market indices overview (S&P 500, NASDAQ, DOW)."""
+        try:
+            from tools_finance import market_overview as _mo
+            return _mo()
         except Exception as e:
             return f"Error: {e}"
 
