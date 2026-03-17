@@ -36,18 +36,27 @@ async def ping_notebooklm() -> dict:
     try:
         context = await pw.chromium.launch_persistent_context(
             user_data_dir=PROFILE_DIR,
-            headless=True,
+            headless=not bool(os.environ.get("DISPLAY")),
             args=[
                 "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
-                "--restore-last-session",  # Prevents Chromium from discarding session cookies on restart
+                "--restore-last-session",
             ],
             ignore_default_args=["--enable-automation"],
-            headless=not bool(os.environ.get("DISPLAY")),  # Non-headless with Xvfb
-            storage_state=str(storage_path) if (storage_path.exists() and not profile_cookies.exists()) else None,
             viewport={"width": 1280, "height": 900},
             user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         )
+
+        # Seed cookies from storage_state on first run
+        if storage_path.exists() and not profile_cookies.exists():
+            try:
+                import json as _json
+                with open(storage_path) as f:
+                    state = _json.load(f)
+                if "cookies" in state:
+                    await context.add_cookies(state["cookies"])
+            except Exception:
+                pass
     except Exception as e:
         await pw.stop()
         return {"success": False, "error": f"Browser launch failed: {e}"}
