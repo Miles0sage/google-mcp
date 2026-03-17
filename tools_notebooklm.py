@@ -1,137 +1,128 @@
-"""NotebookLM automation via Playwright browser automation."""
+"""NotebookLM automation via notebooklm-py library (no browser needed)."""
 
 import asyncio
-import json
-import os
-
-STORAGE_STATE = os.getenv(
-    "NOTEBOOKLM_STORAGE_STATE",
-    os.path.expanduser("~/.notebooklm/storage_state.json"),
-)
+from typing import Optional
 
 
-async def _get_browser():
-    """Launch Playwright browser with NotebookLM auth cookies."""
-    from playwright.async_api import async_playwright
+async def _get_client():
+    """Get authenticated NotebookLMClient from saved storage."""
+    from notebooklm import NotebookLMClient
+    return NotebookLMClient.from_storage()
 
-    pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=True, args=["--no-sandbox"])
-    context = await browser.new_context(storage_state=STORAGE_STATE)
-    return pw, browser, context
+
+def list_notebooks() -> str:
+    """List all NotebookLM notebooks."""
+    async def _run():
+        async with await _get_client() as client:
+            notebooks = await client.notebooks.list()
+            if not notebooks:
+                return "No notebooks found."
+            lines = []
+            for i, nb in enumerate(notebooks, 1):
+                lines.append(f"{i}. {nb.title} (ID: {nb.id})")
+            return f"Notebooks ({len(notebooks)}):\n" + "\n".join(lines)
+    try:
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error listing notebooks: {e}"
 
 
 def create_notebook(title: str, source_urls: list[str]) -> str:
-    """
-    Create a NotebookLM notebook and add source URLs.
-
-    Args:
-        title: Notebook title
-        source_urls: List of URLs to add as sources
-
-    Returns:
-        Status message with notebook URL
-    """
+    """Create a NotebookLM notebook and add source URLs."""
+    async def _run():
+        async with await _get_client() as client:
+            nb = await client.notebooks.create(title=title)
+            added = 0
+            errors = []
+            for url in source_urls[:50]:
+                try:
+                    await client.sources.add_url(nb.id, url)
+                    added += 1
+                except Exception as e:
+                    errors.append(f"{url}: {e}")
+            result = f"Notebook created: {nb.title} (ID: {nb.id})\nSources added: {added}/{len(source_urls)}"
+            if errors:
+                result += f"\nErrors:\n" + "\n".join(errors[:5])
+            return result
     try:
-        return asyncio.run(_create_notebook_async(title, source_urls))
+        return asyncio.run(_run())
     except Exception as e:
         return f"Error creating notebook: {e}"
 
 
-async def _create_notebook_async(title: str, source_urls: list[str]) -> str:
-    if not os.path.exists(STORAGE_STATE):
-        return (
-            f"NotebookLM storage_state.json not found at {STORAGE_STATE}. "
-            "Login to notebooklm.google.com in Playwright first and save cookies."
-        )
-
-    pw, browser, context = await _get_browser()
+def add_source(notebook_id: str, url: str) -> str:
+    """Add a URL source to an existing notebook."""
+    async def _run():
+        async with await _get_client() as client:
+            source = await client.sources.add_url(notebook_id, url)
+            return f"Source added: {source.title} (status: {source.status})"
     try:
-        page = await context.new_page()
-        await page.goto("https://notebooklm.google.com/", wait_until="networkidle")
-        await page.wait_for_timeout(3000)
-
-        # Click "New notebook" or "+" button
-        new_btn = page.locator('button:has-text("New"), button:has-text("Create"), [aria-label*="new"]').first
-        await new_btn.click()
-        await page.wait_for_timeout(2000)
-
-        added = 0
-        for url in source_urls[:20]:  # Max 20 sources
-            try:
-                # Click add source
-                add_btn = page.locator('button:has-text("Add source"), button:has-text("Add"), [aria-label*="source"]').first
-                await add_btn.click()
-                await page.wait_for_timeout(1000)
-
-                # Look for URL/website option
-                url_option = page.locator('text=Website, text=URL, text=Link').first
-                await url_option.click()
-                await page.wait_for_timeout(500)
-
-                # Paste URL
-                url_input = page.locator('input[type="url"], input[type="text"], textarea').first
-                await url_input.fill(url)
-                await page.wait_for_timeout(500)
-
-                # Submit
-                submit_btn = page.locator('button:has-text("Insert"), button:has-text("Add"), button:has-text("Submit")').first
-                await submit_btn.click()
-                await page.wait_for_timeout(3000)
-                added += 1
-            except Exception:
-                continue
-
-        notebook_url = page.url
-        return f"Notebook created: {notebook_url}\nSources added: {added}/{len(source_urls)}"
-    finally:
-        await browser.close()
-        await pw.stop()
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error adding source: {e}"
 
 
-def generate_podcast(notebook_url: str) -> str:
-    """
-    Trigger Audio Overview (podcast) generation for a NotebookLM notebook.
-
-    Args:
-        notebook_url: URL of the NotebookLM notebook
-
-    Returns:
-        Status of podcast generation
-    """
+def add_text_source(notebook_id: str, title: str, text: str) -> str:
+    """Add a text/paste source to a notebook."""
+    async def _run():
+        async with await _get_client() as client:
+            source = await client.sources.add_text(notebook_id, title=title, text=text)
+            return f"Text source added: {source.title} (status: {source.status})"
     try:
-        return asyncio.run(_generate_podcast_async(notebook_url))
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error adding text source: {e}"
+
+
+def add_youtube_source(notebook_id: str, youtube_url: str) -> str:
+    """Add a YouTube video as a source to a notebook."""
+    async def _run():
+        async with await _get_client() as client:
+            source = await client.sources.add_youtube(notebook_id, youtube_url)
+            return f"YouTube source added: {source.title} (status: {source.status})"
+    try:
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error adding YouTube source: {e}"
+
+
+def generate_podcast(notebook_id: str) -> str:
+    """Generate an Audio Overview (podcast) for a notebook."""
+    async def _run():
+        from notebooklm import ArtifactType
+        async with await _get_client() as client:
+            artifact = await client.artifacts.generate(notebook_id, ArtifactType.AUDIO)
+            return f"Podcast generation started (ID: {artifact.id}, status: {artifact.status})\nNote: Generation takes 2-5 minutes."
+    try:
+        return asyncio.run(_run())
     except Exception as e:
         return f"Error generating podcast: {e}"
 
 
-async def _generate_podcast_async(notebook_url: str) -> str:
-    if not os.path.exists(STORAGE_STATE):
-        return f"NotebookLM storage_state.json not found at {STORAGE_STATE}."
-
-    pw, browser, context = await _get_browser()
+def ask_notebook(notebook_id: str, question: str) -> str:
+    """Ask a question to a notebook's sources."""
+    async def _run():
+        async with await _get_client() as client:
+            result = await client.chat.ask(notebook_id, question)
+            return f"Answer: {result.text}\n\nReferences: {len(result.references) if hasattr(result, 'references') else 'N/A'}"
     try:
-        page = await context.new_page()
-        await page.goto(notebook_url, wait_until="networkidle")
-        await page.wait_for_timeout(3000)
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error asking notebook: {e}"
 
-        # Find and click "Audio Overview" or "Generate" button
-        audio_btn = page.locator(
-            'button:has-text("Audio Overview"), '
-            'button:has-text("Generate audio"), '
-            'button:has-text("Notebook guide"), '
-            '[aria-label*="audio"], [aria-label*="podcast"]'
-        ).first
-        await audio_btn.click()
-        await page.wait_for_timeout(2000)
 
-        # Click generate/create
-        gen_btn = page.locator(
-            'button:has-text("Generate"), button:has-text("Create")'
-        ).first
-        await gen_btn.click()
-        await page.wait_for_timeout(5000)
-
-        return f"Podcast generation triggered for: {notebook_url}\nNote: Generation takes 2-5 minutes. Check the notebook for the audio player."
-    finally:
-        await browser.close()
-        await pw.stop()
+def notebook_sources(notebook_id: str) -> str:
+    """List all sources in a notebook."""
+    async def _run():
+        async with await _get_client() as client:
+            sources = await client.sources.list(notebook_id)
+            if not sources:
+                return "No sources in this notebook."
+            lines = []
+            for i, s in enumerate(sources, 1):
+                lines.append(f"{i}. {s.title} ({s.type}, status: {s.status})")
+            return f"Sources ({len(sources)}):\n" + "\n".join(lines)
+    try:
+        return asyncio.run(_run())
+    except Exception as e:
+        return f"Error listing sources: {e}"

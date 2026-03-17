@@ -333,8 +333,17 @@ def create_server():
             return f"Error: {e}"
 
     @mcp.tool()
+    def notebooklm_list() -> str:
+        """List all your NotebookLM notebooks."""
+        try:
+            from tools_notebooklm import list_notebooks
+            return list_notebooks()
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
     def notebooklm_create(title: str, source_urls: str) -> str:
-        """Create a NotebookLM notebook and add source URLs. Requires browser auth.
+        """Create a NotebookLM notebook and add source URLs.
         Args:
             title: Notebook title
             source_urls: Comma-separated list of URLs to add as sources
@@ -347,14 +356,79 @@ def create_server():
             return f"Error: {e}"
 
     @mcp.tool()
-    def notebooklm_podcast(notebook_url: str) -> str:
-        """Generate an audio podcast from a NotebookLM notebook.
+    def notebooklm_add_source(notebook_id: str, url: str) -> str:
+        """Add a URL source to an existing NotebookLM notebook.
         Args:
-            notebook_url: URL of the NotebookLM notebook
+            notebook_id: Notebook ID from notebooklm_list
+            url: URL to add as source
+        """
+        try:
+            from tools_notebooklm import add_source
+            return add_source(notebook_id, url)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_add_youtube(notebook_id: str, youtube_url: str) -> str:
+        """Add a YouTube video as a source to a NotebookLM notebook.
+        Args:
+            notebook_id: Notebook ID
+            youtube_url: YouTube video URL
+        """
+        try:
+            from tools_notebooklm import add_youtube_source
+            return add_youtube_source(notebook_id, youtube_url)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_add_text(notebook_id: str, title: str, text: str) -> str:
+        """Add text/paste content as a source to a NotebookLM notebook.
+        Args:
+            notebook_id: Notebook ID
+            title: Source title
+            text: Text content to add
+        """
+        try:
+            from tools_notebooklm import add_text_source
+            return add_text_source(notebook_id, title, text)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_podcast(notebook_id: str) -> str:
+        """Generate an Audio Overview (podcast) for a NotebookLM notebook.
+        Args:
+            notebook_id: Notebook ID from notebooklm_list
         """
         try:
             from tools_notebooklm import generate_podcast
-            return generate_podcast(notebook_url)
+            return generate_podcast(notebook_id)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_ask(notebook_id: str, question: str) -> str:
+        """Ask a question to a NotebookLM notebook's sources. Get AI-generated answer grounded in the sources.
+        Args:
+            notebook_id: Notebook ID
+            question: Question to ask
+        """
+        try:
+            from tools_notebooklm import ask_notebook
+            return ask_notebook(notebook_id, question)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def notebooklm_sources(notebook_id: str) -> str:
+        """List all sources in a NotebookLM notebook.
+        Args:
+            notebook_id: Notebook ID
+        """
+        try:
+            from tools_notebooklm import notebook_sources
+            return notebook_sources(notebook_id)
         except Exception as e:
             return f"Error: {e}"
 
