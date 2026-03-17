@@ -446,8 +446,33 @@ def create_server():
             return f"Error: {e}"
 
     # -----------------------------------------------------------------------
-    # Phase 3 tools — Translate, Finance
+    # Phase 3 tools — arXiv, Translate, Finance
     # -----------------------------------------------------------------------
+
+    @mcp.tool()
+    def arxiv_search(query: str, max_results: int = 5) -> str:
+        """Search arXiv for academic papers (free, no API key).
+        Args:
+            query: Search query (e.g. 'transformer attention mechanism')
+            max_results: Max papers to return (default 5)
+        """
+        try:
+            from tools_arxiv import search_arxiv
+            return search_arxiv(query, max_results)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def arxiv_paper(arxiv_id: str) -> str:
+        """Get full details of an arXiv paper by ID (abstract, authors, categories).
+        Args:
+            arxiv_id: arXiv paper ID (e.g. '2309.07864')
+        """
+        try:
+            from tools_arxiv import get_paper
+            return get_paper(arxiv_id)
+        except Exception as e:
+            return f"Error: {e}"
 
     @mcp.tool()
     def translate(text: str, target_language: str = 'en', source_language: str = 'auto') -> str:

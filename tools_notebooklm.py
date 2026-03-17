@@ -11,6 +11,29 @@ async def _get_client():
     return client
 
 
+def _run_async(coro_fn):
+    """Run async function, handling both standalone and nested event loop contexts."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Already inside an event loop (MCP server context) — use nest_asyncio
+        try:
+            import nest_asyncio
+            nest_asyncio.apply()
+            return asyncio.run(coro_fn())
+        except ImportError:
+            # Fallback: create new thread with its own event loop
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, coro_fn())
+                return future.result(timeout=60)
+    else:
+        return asyncio.run(coro_fn())
+
+
 def list_notebooks() -> str:
     """List all NotebookLM notebooks."""
     async def _run():
@@ -23,7 +46,7 @@ def list_notebooks() -> str:
                 lines.append(f"{i}. {nb.title} (ID: {nb.id})")
             return f"Notebooks ({len(notebooks)}):\n" + "\n".join(lines)
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error listing notebooks: {e}"
 
@@ -46,7 +69,7 @@ def create_notebook(title: str, source_urls: list[str]) -> str:
                 result += f"\nErrors:\n" + "\n".join(errors[:5])
             return result
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error creating notebook: {e}"
 
@@ -58,7 +81,7 @@ def add_source(notebook_id: str, url: str) -> str:
             source = await client.sources.add_url(notebook_id, url)
             return f"Source added: {source.title} (status: {source.status})"
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error adding source: {e}"
 
@@ -70,7 +93,7 @@ def add_text_source(notebook_id: str, title: str, text: str) -> str:
             source = await client.sources.add_text(notebook_id, title=title, text=text)
             return f"Text source added: {source.title} (status: {source.status})"
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error adding text source: {e}"
 
@@ -82,7 +105,7 @@ def add_youtube_source(notebook_id: str, youtube_url: str) -> str:
             source = await client.sources.add_youtube(notebook_id, youtube_url)
             return f"YouTube source added: {source.title} (status: {source.status})"
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error adding YouTube source: {e}"
 
@@ -98,7 +121,7 @@ def generate_podcast(notebook_id: str) -> str:
         finally:
             await client.__aexit__(None, None, None)
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error generating podcast: {e}"
 
@@ -111,7 +134,7 @@ def ask_notebook(notebook_id: str, question: str) -> str:
             refs = len(result.references) if result.references else 0
             return f"Answer: {result.answer}\n\nReferences: {refs} citations"
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error asking notebook: {e}"
 
@@ -128,6 +151,6 @@ def notebook_sources(notebook_id: str) -> str:
                 lines.append(f"{i}. {s.title} ({s.type}, status: {s.status})")
             return f"Sources ({len(sources)}):\n" + "\n".join(lines)
     try:
-        return asyncio.run(_run())
+        return _run_async(_run)
     except Exception as e:
         return f"Error listing sources: {e}"

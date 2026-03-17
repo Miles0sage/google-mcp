@@ -1,21 +1,38 @@
 # 🔍 Google MCP Server
 
-**MCP server for Google services that have NO official API.**
+**The only MCP server for Google services with NO official API.**
 
-YouTube Transcripts • Google Trends • News • Scholar • Books • Maps • Patents • NotebookLM — all in one MCP server.
+NotebookLM (create notebooks + generate podcasts) • YouTube Transcripts • arXiv Papers • Google Trends • News • Scholar • Translate • Finance • Books • Maps • Patents — **24 tools in one server.**
 
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-brightgreen.svg)
-![Tools](https://img.shields.io/badge/Tools-13-orange.svg)
+![Tools](https://img.shields.io/badge/Tools-24-orange.svg)
+
+---
+
+## 🎯 The Killer Feature: NotebookLM Automation
+
+No one else has this. From Claude Code (or any MCP client):
+
+```
+→ "Create a notebook about AI agents and generate a podcast"
+
+1. notebooklm_create("AI Agents Research", "url1,url2,url3")  → Notebook created
+2. notebooklm_add_youtube(id, "https://youtube.com/watch?v=...")  → YouTube source added
+3. notebooklm_podcast(id)  → Podcast generating (2-5 min)
+4. notebooklm_ask(id, "What are the key findings?")  → AI answer with citations
+```
+
+Create notebooks, add sources (URLs, YouTube videos, raw text), generate Audio Overviews (podcasts), and ask questions — all programmatically.
 
 ---
 
 ## Why?
 
-AI agents need Google data. Most Google services have **no official API** — try getting a YouTube transcript, Google Trends data, or Scholar citations programmatically. This MCP server wraps unofficial libraries and scraping into **13 clean MCP tools** that work with Claude Code, Cursor, Windsurf, or any MCP client.
+AI agents need Google data. Most Google services have **no official API**. This MCP server wraps unofficial libraries into **24 clean MCP tools** that work with Claude Code, Cursor, Windsurf, or any MCP client.
 
-**Zero cost for 10 of 13 tools.** No API keys needed.
+**21 of 24 tools are completely free.** No API keys needed.
 
 ---
 
@@ -33,8 +50,19 @@ AI agents need Google data. Most Google services have **no official API** — tr
 | `maps_search` | Search Google Maps/Places | API Key | Free tier |
 | `maps_details` | Place details, reviews, hours, phone | API Key | Free tier |
 | `patents_search` | Search Google Patents | None | Free |
-| `notebooklm_create` | Create NotebookLM notebook + add sources | Browser auth | Free |
-| `notebooklm_podcast` | Generate audio podcast from notebook | Browser auth | Free |
+| `arxiv_search` | Search arXiv papers | None | Free |
+| `arxiv_paper` | Get full paper details by ID | None | Free |
+| `translate` | Translate text between 100+ languages | None | Free |
+| `stock_quote` | Real-time stock price + 52-week range | None | Free |
+| `market_overview` | S&P 500, NASDAQ, DOW overview | None | Free |
+| `notebooklm_list` | List your NotebookLM notebooks | Browser auth | Free |
+| `notebooklm_create` | Create notebook + add URL sources | Browser auth | Free |
+| `notebooklm_add_source` | Add URL to existing notebook | Browser auth | Free |
+| `notebooklm_add_youtube` | Add YouTube video as source | Browser auth | Free |
+| `notebooklm_add_text` | Add text/paste as source | Browser auth | Free |
+| `notebooklm_podcast` | Generate Audio Overview (podcast) | Browser auth | Free |
+| `notebooklm_ask` | Ask questions with cited answers | Browser auth | Free |
+| `notebooklm_sources` | List sources in a notebook | Browser auth | Free |
 | `research_pipeline` | **Combined multi-source research in one call** | None | Free |
 
 *Google Scholar may rate-limit server IPs. Use a proxy for production.
