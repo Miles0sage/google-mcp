@@ -446,8 +446,33 @@ def create_server():
             return f"Error: {e}"
 
     # -----------------------------------------------------------------------
-    # Phase 3 tools — arXiv, Translate, Finance
+    # Phase 3 tools — Wikipedia, Webpage, arXiv, Translate, Finance
     # -----------------------------------------------------------------------
+
+    @mcp.tool()
+    def wikipedia(query: str) -> str:
+        """Search Wikipedia and get article summary.
+        Args:
+            query: Topic to search (e.g. 'machine learning', 'Model Context Protocol')
+        """
+        try:
+            from tools_wikipedia import search_wikipedia
+            return search_wikipedia(query)
+        except Exception as e:
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def webpage_read(url: str, max_chars: int = 5000) -> str:
+        """Extract main text content from any webpage URL. Strips HTML, scripts, styles.
+        Args:
+            url: URL to read
+            max_chars: Max characters to return (default 5000)
+        """
+        try:
+            from tools_webpage import extract_webpage
+            return extract_webpage(url, max_chars)
+        except Exception as e:
+            return f"Error: {e}"
 
     @mcp.tool()
     def arxiv_search(query: str, max_results: int = 5) -> str:

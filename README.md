@@ -2,12 +2,12 @@
 
 **The only MCP server for Google services with NO official API.**
 
-NotebookLM (create notebooks + generate podcasts) • YouTube Transcripts • arXiv Papers • Google Trends • News • Scholar • Translate • Finance • Books • Maps • Patents — **24 tools in one server.**
+NotebookLM (create notebooks + generate podcasts) • YouTube Transcripts • arXiv Papers • Google Trends • News • Scholar • Translate • Finance • Books • Maps • Patents — **26 tools in one server.**
 
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-brightgreen.svg)
-![Tools](https://img.shields.io/badge/Tools-24-orange.svg)
+![Tools](https://img.shields.io/badge/Tools-26-orange.svg)
 
 ---
 
@@ -30,9 +30,9 @@ Create notebooks, add sources (URLs, YouTube videos, raw text), generate Audio O
 
 ## Why?
 
-AI agents need Google data. Most Google services have **no official API**. This MCP server wraps unofficial libraries into **24 clean MCP tools** that work with Claude Code, Cursor, Windsurf, or any MCP client.
+AI agents need Google data. Most Google services have **no official API**. This MCP server wraps unofficial libraries into **26 clean MCP tools** that work with Claude Code, Cursor, Windsurf, or any MCP client.
 
-**21 of 24 tools are completely free.** No API keys needed.
+**21 of 26 tools are completely free.** No API keys needed.
 
 ---
 
@@ -63,6 +63,8 @@ AI agents need Google data. Most Google services have **no official API**. This 
 | `notebooklm_podcast` | Generate Audio Overview (podcast) | Browser auth | Free |
 | `notebooklm_ask` | Ask questions with cited answers | Browser auth | Free |
 | `notebooklm_sources` | List sources in a notebook | Browser auth | Free |
+| `wikipedia` | Search Wikipedia, get article summaries | None | Free |
+| `webpage_read` | Extract main text from any URL | None | Free |
 | `research_pipeline` | **Combined multi-source research in one call** | None | Free |
 
 *Google Scholar may rate-limit server IPs. Use a proxy for production.
